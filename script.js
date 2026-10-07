@@ -6,7 +6,11 @@ const notesList = document.querySelector("#notes-list");
 const noteCount = document.querySelector("#note-count");
 const errorMessage = document.querySelector("#error-message");
 
-let notes = [];
+let notes = JSON.parse(localStorage.getItem("quickNotes")) || [];
+
+function saveNotes() {
+    localStorage.setItem("quickNotes", JSON.stringify(notes));
+}
 
 function updateCount() {
     if (notes.length === 0) {
@@ -18,11 +22,27 @@ function updateCount() {
     }
 }
 
-function render() {
+function render(searchTerm = "") {
     notesList.textContent = "";
 
-    notes.forEach(function(note) {
+    const searchWords = searchTerm.trim().toLowerCase();
 
+    const filteredNotes = notes.filter(function(note) {
+        return note.text.toLowerCase().includes(searchWords);
+    });
+
+    if (filteredNotes.length === 0) {
+        if (notes.length > 0 && searchWords !== "") {
+            const noResults = document.createElement("li");
+            noResults.textContent = "No notes match your search.";
+            notesList.appendChild(noResults);
+        }
+
+        updateCount();
+        return;
+    }
+
+    filteredNotes.forEach(function(note) {
         const listItem = document.createElement("li");
         listItem.classList.add("note-card");
 
@@ -51,7 +71,8 @@ function render() {
                 return item.id !== note.id;
             });
 
-            render();
+            saveNotes();
+            render(searchInput.value);
         });
 
         listItem.appendChild(noteText);
@@ -65,14 +86,14 @@ function render() {
 }
 
 noteForm.addEventListener("submit", function(event) {
-
     event.preventDefault();
 
     const text = noteInput.value.trim();
     const category = noteCategory.value;
 
     if (text === "") {
-        errorMessage.textContent = "Please type a note first.";
+        errorMessage.textContent =
+            "Please type a note first.";
         return;
     }
 
@@ -90,9 +111,14 @@ noteForm.addEventListener("submit", function(event) {
     };
 
     notes.push(newNote);
-    render();
+    saveNotes();
+    render(searchInput.value);
     noteInput.value = "";
     errorMessage.textContent = "";
+});
+
+searchInput.addEventListener("input", function() {
+    render(searchInput.value);
 });
 
 render();
